@@ -24,8 +24,10 @@ type AppAction =
   | { type: 'UPDATE_LABEL'; payload: { labelId: string; updates: Partial<Label> } }
   | { type: 'DELETE_LABEL'; payload: { labelId: string } };
 
-// Initial state with seed data
-const initialState: AppState = {
+const STORAGE_KEY = 'tasklistplus_app_state';
+
+// Default seed data
+const defaultState: AppState = {
   user: {
     id: 'u_demo',
     nama: 'Cevin',
@@ -78,6 +80,31 @@ const initialState: AppState = {
     },
   ],
 };
+
+// Load state from localStorage or return default
+const loadStoredState = (): AppState => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.warn('Failed to load stored state:', error);
+  }
+  return defaultState;
+};
+
+// Save state to localStorage
+const saveStateToStorage = (state: AppState) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn('Failed to save state:', error);
+  }
+};
+
+// Initial state with localStorage persistence
+const initialState: AppState = loadStoredState();
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -154,6 +181,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     root.classList.remove('light', 'dark');
     root.classList.add(state.user.theme);
   }, [state.user.theme]);
+
+  // Save state to localStorage whenever state changes
+  useEffect(() => {
+    saveStateToStorage(state);
+  }, [state]);
 
   const updateTaskStatus = (taskId: string, status: 'selesai' | 'tunda') => {
     dispatch({ type: 'UPDATE_TASK_STATUS', payload: { taskId, status } });

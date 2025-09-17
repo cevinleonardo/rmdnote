@@ -39,8 +39,12 @@ export default function TaskCreate() {
       return;
     }
 
+    // Convert datetime-local input to ISO string
+    const deadlineISO = new Date(formData.deadline).toISOString();
+
     addTask({
       ...formData,
+      deadline: deadlineISO,
       status: 'tunda',
     });
 
