@@ -11,6 +11,9 @@ interface AppContextType {
   toggleTheme: () => void;
   getTodayStats: () => { done: number; pending: number };
   getNearestTasks: (limit?: number) => Task[];
+  completeOnboarding: () => void;
+  getTasksForDate: (date: Date) => Task[];
+  shouldShowCalendarTask: (task: Task) => boolean;
 }
 
 type AppAction =
@@ -22,7 +25,9 @@ type AppAction =
   | { type: 'SET_STATE'; payload: { state: Partial<AppState> } }
   | { type: 'ADD_LABEL'; payload: { label: Label } }
   | { type: 'UPDATE_LABEL'; payload: { labelId: string; updates: Partial<Label> } }
-  | { type: 'DELETE_LABEL'; payload: { labelId: string } };
+  | { type: 'DELETE_LABEL'; payload: { labelId: string } }
+  | { type: 'COMPLETE_ONBOARDING' }
+  | { type: 'UPDATE_USER'; payload: { updates: Partial<User> } };
 
 const STORAGE_KEY = 'tasklistplus_app_state';
 
@@ -38,6 +43,7 @@ const defaultState: AppState = {
     theme: 'light',
     notif_prefs: { push: true, whatsapp: false, email: true },
     reminder_default_minutes: 15,
+    onboarding_completed: false,
   },
   labels: [
     { id: 'l1', nama: 'Personal' },
@@ -61,7 +67,7 @@ const defaultState: AppState = {
       nama: 'Standup meeting',
       catatan: 'Update progress sprint',
       deadline: new Date().toISOString().split('T')[0] + 'T09:30:00.000Z',
-      pengulangan: { tipe: 'harian' },
+      pengulangan: { tipe: 'harian', hari_dipilih: ['senin', 'selasa', 'rabu', 'kamis', 'jumat'] },
       prioritas: 'Sedang',
       label_ids: ['l2'],
       status: 'tunda',
@@ -165,6 +171,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         labels: state.labels.filter(label => label.id !== action.payload.labelId),
       };
+    case 'COMPLETE_ONBOARDING':
+      return {
+        ...state,
+        user: { ...state.user, onboarding_completed: true }
+      };
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        user: { ...state.user, ...action.payload.updates }
+      };
     default:
       return state;
   }
@@ -229,6 +245,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .slice(0, limit);
   };
 
+  const completeOnboarding = () => {
+    dispatch({ type: 'COMPLETE_ONBOARDING' });
+  };
+
+  const getTasksForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return state.tasks.filter(task => {
+      const taskDate = new Date(task.deadline).toISOString().split('T')[0];
+      
+      // Handle different repetition types
+      switch (task.pengulangan.tipe) {
+        case 'tidak_ada':
+          return taskDate === dateStr;
+        
+        case 'pilih_tanggal':
+          return taskDate === dateStr || 
+            (task.pengulangan.custom_dates?.includes(dateStr));
+        
+        case 'harian':
+          if (!task.pengulangan.hari_dipilih) return false;
+          const dayNames = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+          const dayName = dayNames[date.getDay()];
+          return task.pengulangan.hari_dipilih.includes(dayName);
+        
+        case 'mingguan':
+          const taskDay = new Date(task.deadline).getDay();
+          const currentDay = date.getDay();
+          return taskDay === currentDay;
+        
+        case 'bulanan':
+          const taskDayOfMonth = new Date(task.deadline).getDate();
+          const currentDayOfMonth = date.getDate();
+          return taskDayOfMonth === currentDayOfMonth;
+        
+        case 'tahunan':
+          const taskMonth = new Date(task.deadline).getMonth();
+          const taskDayOfYear = new Date(task.deadline).getDate();
+          return date.getMonth() === taskMonth && date.getDate() === taskDayOfYear;
+        
+        default:
+          return taskDate === dateStr;
+      }
+    });
+  };
+
+  const shouldShowCalendarTask = (task: Task) => {
+    // Only show certain repetition types in calendar
+    return ['tidak_ada', 'bulanan', 'tahunan', 'pilih_tanggal'].includes(task.pengulangan.tipe) &&
+      task.status !== 'selesai';
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -241,6 +308,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleTheme,
         getTodayStats,
         getNearestTasks,
+        completeOnboarding,
+        getTasksForDate,
+        shouldShowCalendarTask,
       }}
     >
       {children}
