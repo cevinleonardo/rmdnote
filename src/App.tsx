@@ -14,6 +14,10 @@ import Onboarding from "./pages/Onboarding";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import PremiumComparison from "./pages/PremiumComparison";
+import NotificationSettings from "./pages/NotificationSettings";
+import HelpFAQ from "./pages/HelpFAQ";
+import ChangePassword from "./pages/ChangePassword";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +39,10 @@ const App = () => (
             <Route path="/task/edit/:id" element={<TaskEdit />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/premium" element={<PremiumComparison />} />
+            <Route path="/notifications" element={<NotificationSettings />} />
+            <Route path="/help" element={<HelpFAQ />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppProvider>

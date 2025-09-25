@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,19 +8,30 @@ import TaskCard from '@/components/TaskCard';
 import BottomNav from '@/components/BottomNav';
 import { useApp } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
+import { format, addDays, subDays, startOfDay, isSameDay, addMonths, subMonths } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export default function TasksList() {
-  const { state } = useApp();
+  const { state, getTasksForDate } = useApp();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const handleEditTask = (taskId: string) => {
     navigate(`/task/edit/${taskId}`);
   };
 
+  // Generate horizontal date strip (7 days: 3 before, selected, 3 after)
+  const dateStrip = Array.from({ length: 7 }, (_, i) => addDays(selectedDate, i - 3));
+
+  // Get tasks for selected date
+  const tasksForDate = getTasksForDate(selectedDate);
+
   // Filter tasks based on search and tab
-  const filteredTasks = state.tasks.filter(task => {
+  const filteredTasks = tasksForDate.filter(task => {
     const matchesSearch = task.nama.toLowerCase().includes(searchQuery.toLowerCase());
     
     switch (activeTab) {
@@ -33,9 +44,9 @@ export default function TasksList() {
     }
   });
 
-  const allCount = state.tasks.length;
-  const completedCount = state.tasks.filter(t => t.status === 'selesai').length;
-  const pendingCount = state.tasks.filter(t => t.status === 'tunda').length;
+  const allCount = tasksForDate.length;
+  const completedCount = tasksForDate.filter(t => t.status === 'selesai').length;
+  const pendingCount = tasksForDate.filter(t => t.status === 'tunda').length;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -56,6 +67,67 @@ export default function TasksList() {
       </div>
 
       <div className="p-4">
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between mb-4">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <h2 className="text-sm font-medium">
+            {format(currentMonth, 'MMMM yyyy', { locale: localeId })}
+          </h2>
+          
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Horizontal Date Strip */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {dateStrip.map(date => {
+            const isSelected = isSameDay(date, selectedDate);
+            const isToday = isSameDay(date, new Date());
+            const dayTasks = getTasksForDate(date);
+            
+            return (
+              <Button
+                key={date.toISOString()}
+                variant={isSelected ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "flex-shrink-0 flex flex-col items-center min-w-[60px] h-auto py-2",
+                  isToday && !isSelected && "ring-1 ring-primary"
+                )}
+                onClick={() => setSelectedDate(date)}
+              >
+                <span className="text-xs">{format(date, 'EEE', { locale: localeId })}</span>
+                <span className="text-sm font-medium">{format(date, 'd')}</span>
+                {dayTasks.length > 0 && (
+                  <div className="w-1 h-1 bg-warning rounded-full mt-1" />
+                )}
+              </Button>
+            );
+          })}
+        </div>
+
+        {/* Selected Date Info */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">
+            {format(selectedDate, 'EEEE, dd MMMM yyyy', { locale: localeId })}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {allCount} tugas untuk hari ini
+          </p>
+        </div>
+
         {/* Filter Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="grid w-full grid-cols-3">

@@ -11,6 +11,7 @@ import {
   LogOut,
   Camera 
 } from 'lucide-react';
+import ProfilePhotoModal from '@/components/ProfilePhotoModal';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -39,19 +40,25 @@ export default function Account() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [deletePassword, setDeletePassword] = useState('');
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
-  const handleUpgradeToPremium = () => {
-    dispatch({ 
-      type: 'SET_STATE', 
-      payload: { 
-        state: { 
-          user: { ...state.user, status_akun: 'premium' } 
-        } 
-      } 
+  const handleEditPhoto = () => {
+    toast({
+      title: "Edit Foto",
+      description: "Fitur edit foto akan segera tersedia",
+    });
+  };
+
+  const handleDeletePhoto = () => {
+    dispatch({
+      type: 'UPDATE_USER',
+      payload: {
+        updates: { foto_url: null }
+      }
     });
     toast({
-      title: "Berhasil upgrade!",
-      description: "Akun Anda telah diupgrade ke Premium",
+      title: "Foto Dihapus",
+      description: "Foto profil berhasil dihapus",
     });
   };
 
@@ -105,6 +112,7 @@ export default function Account() {
                   size="sm"
                   variant="secondary"
                   className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full p-0"
+                  onClick={() => setShowPhotoModal(true)}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
@@ -158,11 +166,13 @@ export default function Account() {
                   </div>
                 </div>
               </div>
-              {state.user.status_akun === 'free' && (
-                <Button variant="outline" size="sm" onClick={handleUpgradeToPremium}>
-                  Upgrade
-                </Button>
-              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/premium')}
+              >
+                {state.user.status_akun === 'premium' ? 'Manage' : 'Upgrade'}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -173,17 +183,29 @@ export default function Account() {
             <CardTitle className="text-base">Pengaturan</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-3 h-12"
+              onClick={() => navigate('/notifications')}
+            >
               <Bell className="h-5 w-5 text-muted-foreground" />
               <span>Pengaturan Reminder & Notifikasi</span>
             </Button>
             
-            <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-3 h-12"
+              onClick={() => navigate('/help')}
+            >
               <HelpCircle className="h-5 w-5 text-muted-foreground" />
               <span>Bantuan & FAQ</span>
             </Button>
             
-            <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-3 h-12"
+              onClick={() => navigate('/change-password')}
+            >
               <Key className="h-5 w-5 text-muted-foreground" />
               <span>Ubah Password</span>
             </Button>
@@ -235,6 +257,13 @@ export default function Account() {
       </div>
 
       <BottomNav />
+      
+      <ProfilePhotoModal
+        open={showPhotoModal}
+        onOpenChange={setShowPhotoModal}
+        onEdit={handleEditPhoto}
+        onDelete={handleDeletePhoto}
+      />
     </div>
   );
 }

@@ -13,16 +13,23 @@ import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 export default function Calendar() {
-  const { state, updateTaskStatus } = useApp();
+  const { state, updateTaskStatus, shouldShowCalendarTask } = useApp();
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // Get tasks for a specific date
+  // Get tasks for a specific date (only show certain repetition types and not completed)
   const getTasksForDate = (date: Date) => {
-    return state.tasks.filter(task => 
-      isSameDay(new Date(task.deadline), date)
-    );
+    return state.tasks.filter(task => {
+      // Only show specific repetition types in calendar
+      const allowedTypes = ['tidak_ada', 'bulanan', 'tahunan', 'pilih_tanggal'];
+      if (!allowedTypes.includes(task.pengulangan.tipe)) return false;
+      
+      // Don't show completed tasks
+      if (task.status === 'selesai') return false;
+      
+      return shouldShowCalendarTask(task) && isSameDay(new Date(task.deadline), date);
+    });
   };
 
   // Generate calendar days
@@ -40,6 +47,11 @@ export default function Calendar() {
     'Tinggi': 'destructive',
     'Sedang': 'secondary',
     'Rendah': 'outline',
+    // Eisenhower Matrix priorities
+    'Mendesak & Penting': 'destructive',
+    'Mendesak & Tidak Penting': 'secondary',
+    'Tidak Mendesak & Penting': 'default',
+    'Tidak Mendesak & Tidak Penting': 'outline',
   } as const;
 
   return (

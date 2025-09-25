@@ -36,9 +36,26 @@ export default function TaskCard({ task, labels, onEdit }: TaskCardProps) {
   
   const priorityVariant = {
     'Tinggi': 'destructive',
-    'Sedang': 'secondary',
+    'Sedang': 'secondary', 
     'Rendah': 'outline',
+    // Eisenhower Matrix priorities
+    'Mendesak & Penting': 'destructive',
+    'Mendesak & Tidak Penting': 'secondary',
+    'Tidak Mendesak & Penting': 'default',
+    'Tidak Mendesak & Tidak Penting': 'outline',
   } as const;
+
+  const getRepetitionLabel = (task: Task) => {
+    switch (task.pengulangan.tipe) {
+      case 'tidak_ada': return 'Sekali';
+      case 'harian': return 'Harian';
+      case 'mingguan': return 'Mingguan';
+      case 'bulanan': return 'Bulanan';
+      case 'tahunan': return 'Tahunan';
+      case 'pilih_tanggal': return 'Custom';
+      default: return 'Sekali';
+    }
+  };
 
   const handleStatusToggle = (checked: boolean) => {
     updateTaskStatus(task.id, checked ? 'selesai' : 'tunda');
@@ -121,10 +138,15 @@ export default function TaskCard({ task, labels, onEdit }: TaskCardProps) {
                 <p className="text-sm text-muted-foreground">{task.catatan}</p>
               )}
 
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(task.deadline), 'dd MMM yyyy, HH:mm', { locale: localeId })}
-                </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {format(new Date(task.deadline), 'dd MMM yyyy, HH:mm', { locale: localeId })}
+                  </p>
+                  <Badge variant="outline" className="text-xs">
+                    {getRepetitionLabel(task)}
+                  </Badge>
+                </div>
                 
                 {taskLabels.length > 0 && (
                   <div className="flex gap-1 flex-wrap">
